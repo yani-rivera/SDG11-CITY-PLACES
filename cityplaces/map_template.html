@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__</title>
+<link rel="stylesheet" href="__ML_CSS__" integrity="__ML_CSS_SRI__" crossorigin="anonymous">
+<script src="__ML_JS__" integrity="__ML_JS_SRI__" crossorigin="anonymous"></script>
+<style>
+  :root { --ink:#2b2420; --muted:#6f645b; --panel:rgba(255,252,247,.95); --line:#e6ddd2;
+          --sans:-apple-system, system-ui, "Segoe UI", sans-serif; }
+  html, body { margin:0; height:100%; font-family: Georgia, "Iowan Old Style", serif; color:var(--ink); background:#f4efe8; }
+  #map { position:absolute; inset:0; }
+
+  /* Legend box: small and foldable, so it never hides much of the map */
+  .panel { position:absolute; top:12px; left:12px; width:290px; max-height:calc(100% - 24px); overflow:auto;
+           box-sizing:border-box; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+           padding:10px 12px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .head { display:flex; align-items:flex-start; gap:8px; }
+  .head h1 { flex:1; font-size:16px; line-height:1.2; margin:2px 0 0; }
+  .toggle { flex:none; width:32px; height:32px; margin:-4px -6px 0 0; border:0; border-radius:8px; background:transparent;
+            color:var(--ink); font:600 18px/1 var(--sans); cursor:pointer; }
+  .toggle:hover { background:rgba(0,0,0,.05); }
+  .toggle:focus-visible, summary:focus-visible { outline:2px solid #3b6ea8; outline-offset:2px; }
+  .toggle span { display:inline-block; transition:transform .2s; }
+  .panel[data-open="false"] .toggle span { transform:rotate(180deg); }
+  .tagline { font: 600 12px/1.4 var(--sans); color:var(--muted); margin:4px 0 0; }
+  .bar { height:8px; border-radius:4px; margin:9px 0 3px; }
+  .ends { display:flex; justify-content:space-between; font:11.5px var(--sans); }
+  .body p { font: 12px/1.45 var(--sans); color:var(--muted); margin:7px 0 0; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin:0 4px 0 2px; vertical-align:-1px; }
+  .nw { white-space:nowrap; }
+  .more { font: 11.5px/1.45 var(--sans); color:var(--muted); margin:8px 0 0; }
+  .more summary { cursor:pointer; font-weight:600; color:var(--ink); padding:4px 0; }
+  .more ul { margin:4px 0 0; padding-left:16px; }
+  .more li { margin:3px 0; }
+  .more a { color:inherit; }
+  .status { font-size:11px !important; font-style:italic; }
+  .panel[data-open="false"] .body { display:none; }
+
+  .maplibregl-popup-content { font: 13px/1.45 var(--sans); color:var(--ink); padding:10px 28px 10px 12px; }
+  .maplibregl-popup-content b { font-family: Georgia, serif; font-size:15px; }
+  .maplibregl-popup-content table { border-collapse:collapse; margin-top:4px; }
+  .maplibregl-popup-content td { padding:1px 8px 1px 0; }
+  .maplibregl-popup-content td.n { text-align:right; font-variant-numeric: tabular-nums; }
+  .maplibregl-popup-close-button { width:28px; height:28px; font-size:20px; }
+
+  /* Phones: the box becomes a sheet along the bottom; the colour bar always shows */
+  @media (max-width: 600px) {
+    .panel { top:auto; left:0; right:0; bottom:0; width:auto; max-height:55%; border-radius:14px 14px 0 0;
+             border-width:1px 0 0; padding:8px 14px calc(10px + env(safe-area-inset-bottom));
+             box-shadow:0 -2px 12px rgba(0,0,0,.12); }
+    .panel::before { content:""; display:block; width:36px; height:4px; border-radius:2px; background:#d3c8bc; margin:0 auto 6px; }
+    .head h1 { font-size:15px; }
+    .toggle { width:40px; height:40px; margin:-8px -8px 0 0; }
+    .toggle span { transform:rotate(180deg); }
+    .panel[data-open="false"] .toggle span { transform:none; }
+    .body p, .more { font-size:13px; }
+    .maplibregl-ctrl-top-right { top:env(safe-area-inset-top); }
+  }
+</style>
+</head>
+<body>
+<div id="map" role="region" aria-label="Map of coffee places and bakeries by city"></div>
+<div class="panel" id="panel" data-open="true">
+  <div class="head">
+    <h1>__TITLE__</h1>
+    <button class="toggle" id="toggle" type="button" aria-expanded="true" aria-controls="panel-body" aria-label="Hide details"><span aria-hidden="true">⌃</span></button>
+  </div>
+  __TAGLINE__
+  <div class="bar" style="background:linear-gradient(90deg, __BAKERY__, #d8cfc4, __COFFEE__)"></div>
+  <div class="ends"><span>more bakeries</span><span>balanced</span><span>more coffee</span></div>
+  <div class="body" id="panel-body">
+    <p>Zoom in for each place:
+       <span class="nw"><span class="dot" style="background:__COFFEE__"></span>coffee</span>
+       <span class="nw"><span class="dot" style="background:__BAKERY__"></span>bakery</span></p>
+    <details class="more">
+      <summary>About this map</summary>
+      <p>Circle size: coffee places + bakeries in each urban centre. Tap or click a city for its numbers, or a place for who reported it.</p>
+      <ul>__SOURCES__</ul>
+    </details>
+    <p class="status" id="status">Loading…</p>
+  </div>
+</div>
+
+<!-- Data is read with JSON.parse from JSON blocks (never run as code). A million-entry
+     JavaScript literal would also overflow Safari's parser. -->
+<script type="application/json" id="d-settings">__SETTINGS__</script>
+__DATA__
+<script>
+(() => {
+const statusEl = document.getElementById("status");
+const setStatus = (t, bad) => { statusEl.textContent = t; statusEl.style.color = bad ? "#a33" : ""; };
+const showError = e => setStatus("Map error: " + ((e && e.message) || e), true);
+window.addEventListener("error", ev => showError(ev.error || ev.message));
+window.addEventListener("unhandledrejection", ev => showError(ev.reason));
+
+// ---- legend box: fold / unfold, remembered per browser
+const panel = document.getElementById("panel"), toggle = document.getElementById("toggle");
+const phone = window.matchMedia("(max-width: 600px)").matches;
+const coarse = window.matchMedia("(pointer: coarse)").matches;
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+const setOpen = open => {
+  panel.dataset.open = String(open);
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.setAttribute("aria-label", open ? "Hide details" : "Show details");
+};
+const saved = store.get("cityplaces-legend-open");
+setOpen(saved === null ? !phone : saved === "true");     // phones start folded
+toggle.addEventListener("click", () => {
+  const open = panel.dataset.open !== "true";
+  setOpen(open); store.set("cityplaces-legend-open", String(open));
+});
+
+if (typeof maplibregl === "undefined") {
+  setStatus("The map library did not load (offline, or blocked). Check the connection and reload.", true);
+  return;
+}
+if (location.protocol === "file:" && !document.getElementById("d-cities")) {
+  setStatus("This map loads its data from a web server. Run: python run.py serve --run outputs/<run_id>", true);
+  setOpen(true);
+  return;
+}
+
+const S = JSON.parse(document.getElementById("d-settings").textContent);
+const C = S.colors, MID = "#d8cfc4", z = S.pointMinZoom;
+const readBlock = id => { const el = document.getElementById(id); return el ? JSON.parse(el.textContent) : null; };
+const getJSON = async url => {
+  const r = await fetch(url, { credentials: "same-origin" });
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  return r.json();
+};
+const fmt = n => n == null ? "–" : Number(n).toLocaleString();
+
+// ---- map, framed so the legend does not cover the land
+const world = phone ? [[-120, -45], [150, 65]] : [[-130, -42], [152, 64]];
+const pad = () => {
+  const r = panel.getBoundingClientRect();
+  return phone ? { top: 20, bottom: r.height + 10, left: 10, right: 10 }
+               : { top: 20, bottom: 20, left: Math.min(r.right + 10, innerWidth / 2), right: 50 };
+};
+const map = new maplibregl.Map({
+  container: "map", style: S.basemap, bounds: world, fitBoundsOptions: { padding: pad() },
+  attributionControl: false, dragRotate: false, pitchWithRotate: false, hash: true,   // the link keeps the view, e.g. #11/14.09/-87.21
+});
+map.touchZoomRotate.disableRotation();
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+map.addControl(new maplibregl.AttributionControl({ compact: true }), phone ? "top-left" : "bottom-right");
+
+const asFeatures = (rows, providers) => rows.map(r => ({
+  type: "Feature", geometry: { type: "Point", coordinates: [r[0], r[1]] },
+  properties: { g: r[2], name: r[3] || "", src: (r[4] || []).map(i => providers[i]).join(", ") } }));
+
+map.on("load", async () => {
+  setStatus("Loading cities…");
+  const D = readBlock("d-cities") || await getJSON("data/cities.json");
+  const CITIES = D.cities, CITY_SRC = D.citySrc, PROVIDERS = D.providers;
+  // [id, city, country, pop, lon, lat, n_coffee, n_bakery, coffee_per_10k, bakery_per_10k]
+  const cityFC = { type: "FeatureCollection", features: CITIES.map(r => ({
+    type: "Feature", geometry: { type: "Point", coordinates: [r[4], r[5]] },
+    properties: { id: r[0], city: r[1], country: r[2], pop: r[3], c: r[6], b: r[7], cp: r[8], bp: r[9],
+                  t: r[6] + r[7], s: (r[6] + r[7]) ? r[6] / (r[6] + r[7]) : 0.5 } })) };
+
+  map.addSource("cities", { type: "geojson", data: cityFC });
+  map.addSource("places", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({ id: "cities", type: "circle", source: "cities", paint: {
+    "circle-radius": ["interpolate", ["linear"], ["zoom"],
+      1, ["+", 1.5, ["*", 0.06, ["sqrt", ["get", "t"]]]],
+      6, ["+", 3,   ["*", 0.35, ["sqrt", ["get", "t"]]]],
+      z, ["+", 6,   ["*", 0.9,  ["sqrt", ["get", "t"]]]]],
+    "circle-color": ["case", ["==", ["get", "t"], 0], "#ffffff",
+      ["interpolate", ["linear"], ["get", "s"], 0, C.bakery, 0.5, MID, 1, C.coffee]],
+    "circle-stroke-color": ["case", ["==", ["get", "t"], 0], "#b9aea3", "#ffffff"],
+    "circle-stroke-width": 0.6,
+    "circle-opacity": ["interpolate", ["linear"], ["zoom"], z - 1, 0.85, z + 0.5, 0.12],
+    "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], z - 1, 1, z + 0.5, 0.2] } });
+  map.addLayer({ id: "places", type: "circle", source: "places", minzoom: z - 0.5, paint: {
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], z, coarse ? 3 : 2.2, 16, coarse ? 7 : 6],
+    "circle-color": ["match", ["get", "g"], 0, C.coffee, C.bakery],
+    "circle-stroke-color": "#ffffff", "circle-stroke-width": 0.5 } });
+
+  // ---- places: embedded (single file) or one grid cell at a time (tiled)
+  let nPlaces = 0;
+  const idleText = () => S.tiled
+    ? `${fmt(CITIES.length)} cities · zoom in to load each place`
+    : `${fmt(CITIES.length)} cities · ${fmt(nPlaces)} places` + (S.partial ? " (largest cities only)" : "");
+  const embedded = readBlock("d-points");
+  if (embedded) {
+    nPlaces = embedded.length;
+    map.getSource("places").setData({ type: "FeatureCollection", features: asFeatures(embedded, PROVIDERS) });
+  }
+  setStatus(idleText());
+
+  if (S.tiled) {
+    const TILES = D.tiles || {}, deg = S.tileDeg, MAX_CELLS = 80;
+    const loaded = new Map(), pending = new Set();
+    let redraw = null;
+    const refresh = () => {
+      clearTimeout(redraw);
+      redraw = setTimeout(() => {
+        const feats = [].concat(...loaded.values());
+        map.getSource("places").setData({ type: "FeatureCollection", features: feats });
+        setStatus(pending.size ? "Loading places…" : `${idleText()} · ${fmt(feats.length)} places loaded`);
+      }, 80);
+    };
+    const loadVisible = () => {
+      if (map.getZoom() < z - 1) return;
+      const b = map.getBounds();
+      const x0 = Math.floor(Math.max(b.getWest(), -180) / deg), x1 = Math.floor(Math.min(b.getEast(), 179.999) / deg);
+      const y0 = Math.floor(Math.max(b.getSouth(), -85) / deg), y1 = Math.floor(Math.min(b.getNorth(), 85) / deg);
+      if ((x1 - x0 + 1) * (y1 - y0 + 1) > MAX_CELLS) return;
+      for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+        const key = `${x}_${y}`;
+        if (!(key in TILES) || loaded.has(key) || pending.has(key)) continue;
+        pending.add(key); setStatus("Loading places…");
+        getJSON(`data/places/${key}.json`)
+          .then(rows => loaded.set(key, asFeatures(rows, PROVIDERS)))
+          .catch(e => showError(e))
+          .finally(() => { pending.delete(key); refresh(); });
+      }
+    };
+    map.on("moveend", loadVisible);
+    loadVisible();
+  }
+
+  // ---- tap / click: forgiving hit area, nearest feature wins
+  const near = (pt, layers, r) => {
+    const fs = map.queryRenderedFeatures([[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]], { layers });
+    let best = null, bd = Infinity;
+    fs.forEach(f => { const p = map.project(f.geometry.coordinates); const d = (p.x - pt.x) ** 2 + (p.y - pt.y) ** 2;
+                      if (d < bd) { bd = d; best = f; } });
+    return best;
+  };
+  const popup = (lngLat, el) => new maplibregl.Popup({ maxWidth: phone ? "260px" : "300px", focusAfterOpen: false })
+    .setLngLat(lngLat).setDOMContent(el).addTo(map);
+  const placeCard = p => {
+    const el = document.createElement("div");
+    const b = document.createElement("b"); b.textContent = p.name || "(no name)";
+    const src = document.createElement("div"); src.style.color = "#6f645b";
+    src.textContent = "reported by: " + (p.src || "unknown");
+    el.append(b, document.createElement("br"), p.g === 0 ? "coffee" : "bakery", src);
+    return el;
+  };
+  const cityCard = p => {
+    const el = document.createElement("div");
+    const b = document.createElement("b"); b.textContent = p.city || "(unnamed)";
+    const meta = document.createElement("div"); meta.textContent = `${p.country || ""} · pop. ${fmt(p.pop)}`;
+    const t = document.createElement("table");
+    [["", "places", "per 10k"], ["coffee", fmt(p.c), fmt(p.cp)], ["bakery", fmt(p.b), fmt(p.bp)]]
+      .forEach((row, i) => { const tr = t.insertRow(); row.forEach((v, j) => {
+        const td = tr.insertCell(); td.textContent = v; if (j) td.className = "n";
+        if (i === 0) td.style.color = "#6f645b"; }); });
+    const rep = document.createElement("div"); rep.style.cssText = "margin-top:6px;color:#6f645b";
+    const top = CITY_SRC[p.id] || [];
+    rep.textContent = top.length ? "Reported by: " + top.map(([k, n]) => `${k} ${fmt(n)}`).join(" · ")
+                                 : "No places reported";
+    el.append(b, meta, t, rep);
+    return el;
+  };
+  const hit = pt => {
+    const r = coarse ? 14 : 5, zoom = map.getZoom();
+    const place = zoom >= z - 0.5 ? near(pt, ["places"], r) : null;
+    if (place) return ["place", place];
+    const city = zoom <= z ? near(pt, ["cities"], r) : null;
+    return city ? ["city", city] : null;
+  };
+  map.on("click", e => {
+    const h = hit(e.point); if (!h) return;
+    const [kind, f] = h;
+    popup(f.geometry.coordinates, kind === "place" ? placeCard(f.properties) : cityCard(f.properties));
+  });
+  if (!coarse) map.on("mousemove", e => { map.getCanvas().style.cursor = hit(e.point) ? "pointer" : ""; });
+});
+})();
+</script>
+</body>
+</html>

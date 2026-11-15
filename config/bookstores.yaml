@@ -1,0 +1,75 @@
+# Bookshops per city: same pipeline, different categories.
+# Steps: discover -> edit groups -> extract -> count (the built-in map is coffee/bakery only).
+# SDG11-CITY-PLACES — configuration
+# Every run copies this file into its output folder (provenance).
+
+run:
+  output_dir: outputs/bookstores   # kept apart from the coffee & bread runs
+
+overture:
+  # Latest release as of Nov 2026. Check https://docs.overturemaps.org/blog/tags/releases/
+  release: "2026-10-21.0"
+  s3_path: "s3://overturemaps-us-west-2/release/{release}/theme=places/type=place/*"
+  s3_region: us-west-2
+  # Since release 2026-09-23.0 the old `categories` column is gone.
+  # Use `taxonomy.primary` (most specific label) or `basic_category`.
+  category_field: taxonomy.primary
+  brand_field: brand.names.primary
+  min_confidence: 0.5          # Overture's 0–1 confidence; 0 keeps everything
+  # Names in sources[].dataset that are not real data providers. "Overture" is
+  # Overture's own processing stamp and appears on every place; counting it made
+  # every place look "confirmed by 2+ providers".
+  exclude_providers: ["Overture", "Overture-signals"]
+
+# Category labels -> group. PROVISIONAL: run `discover` with this config first and
+# keep only the labels that are really bookshops (check the counts and basic_category).
+groups:
+  bookstore:
+    - bookstore
+    - used_bookstore
+    - comic_books_store
+
+# Optional: chains whose label is something else (e.g. a mall kiosk). Empty for now.
+brands: {}
+
+# Patterns used by `discover` to list candidate labels with counts
+discover:
+  patterns: ["%book%", "%librer%", "%comic%"]
+
+map:
+  title: "Bookshops: Cities of the World"
+  # optional line under the title; leave "" for none
+  tagline: ""
+  # tiled  -> <run>/map/ folder: index.html + small data files, loaded as the reader zooms in.
+  #           Light on phones; publish the folder (e.g. GitHub Pages) or `python run.py serve`.
+  # single -> <run>/map.html, everything in one file (heavy: ~50 MB, may crash phone browsers)
+  mode: tiled
+  tile_deg: 1                  # tiled: grid cell size in degrees for the place files
+  max_points: 1000000          # single: whole cities, largest first, up to this many places
+  point_minzoom: 10            # zoom at which individual places appear
+  # OpenFreeMap needs no API key. The page only lets the map talk to the basemap's own server;
+  # if a style loads tiles or fonts from other servers, list them in basemap_origins.
+  basemap: "https://tiles.openfreemap.org/styles/positron"
+  basemap_attribution: "OpenFreeMap © OpenMapTiles, data from OpenStreetMap contributors"
+  basemap_origins: []
+  credit: ""                   # optional line, e.g. "Map: Yanira A. Rivera"
+  colors:
+    coffee: "#5b3a29"
+    bakery: "#e3a72f"
+
+cities:
+  # GHSL Urban Centre Database (R2024A) GeoPackage, downloaded manually:
+  # https://human-settlement.emergency.copernicus.eu/ghs_ucdb_2024.php
+  path: data/GHS_UCDB_GLOBE_R2024A.gpkg
+  layer: GHSL_UCDB_THEME_GENERAL_CHARACTERISTICS_GLOBE_R2024A
+  source_crs: "ESRI:54009"     # GHSL is in Mollweide
+  version: "R2024A v1.2 (release 2026-06-10), epoch 2025"
+  citation: >-
+    Pesaresi, M., Schiavina, M., Politis, P., Freire, S., Krasnodębska, K., Uhl, J. H., … Kemper, T. (2024).
+    Advances on the Global Human Settlement Layer by joint assessment of Earth Observation and population
+    survey data. International Journal of Digital Earth, 17(1). https://doi.org/10.1080/17538947.2024.2390454
+  # Field names: confirm with `inspect-cities`
+  id_field: ID_UC_G0
+  name_field: GC_UCN_MAI_2025
+  country_field: GC_CNT_GAD_2025
+  pop_field: GC_POP_TOT_2025
