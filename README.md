@@ -1,6 +1,13 @@
 # SDG11-CITY-PLACES
 
-**Version 0.8.0** (2026-11-12) · see [CHANGELOG.md](CHANGELOG.md) · check yours with `python run.py --version`
+**Version 0.9.0** (2026-11-14) · see [CHANGELOG.md](CHANGELOG.md) · check yours with `python run.py --version`
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24253398.svg)](https://doi.org/10.5281/zenodo.24253398)
+
+**Live map:** [Coffee & Bread: Cities of the World](https://yani-rivera.github.io/SDG11-CITY-PLACES/)
+(11,422 cities, 1,025,635 places; Overture Maps release 2026-10-21.0, run `20261114T225932Z`)
+
+Author: Yanira A. Rivera ([ORCID 0000-0003-3309-5256](https://orcid.org/0000-0003-3309-5256))
 
 Counts any kind of place in every city of the world, and **who reports it**. Pipeline name:
 `city_places`. One config per topic:
@@ -122,7 +129,18 @@ A place reported by two providers counts once in `n_coffee`/`n_bakery`, but once
 | `tiled` (default) | `outputs/<run_id>/map/` folder: `index.html`, `data/cities.json`, `data/places/<cell>.json` | All places, no cap. The page loads the city circles (~1 MB), then the places of a grid cell (`map.tile_deg`, 1°) only when you zoom into it. Light on phones. Needs a web server: publish the folder on GitHub Pages, or look at it with `python run.py serve --run outputs/<run_id>`. |
 | `single` | `outputs/<run_id>/map.html` | Everything in one file you can double-click. Capped at `map.max_points` (whole cities, largest first); ~50 MB at 1 million places, too heavy for many phones. |
 
-To publish on GitHub Pages, copy the contents of `map/` into the Pages folder of a repository.
+### Publishing on GitHub Pages
+
+This repository serves the map from `docs/` (Settings → Pages → Deploy from a branch → `main` → `/docs`).
+To publish a new run, copy the page **and** its data folder, which must sit next to it:
+
+```bash
+cp outputs/<run_id>/map/index.html docs/
+rm -rf docs/data && cp -R outputs/<run_id>/map/data docs/
+touch docs/.nojekyll          # skip Jekyll processing of thousands of JSON files
+```
+
+`outputs/` itself is git-ignored: the tables and Parquet files go to Zenodo, not GitHub.
 
 Title, colours, basemap and mode are in the `map:` section of the config. The basemap is
 [OpenFreeMap](https://openfreemap.org) (no API key). Security measures are described in `SECURITY.md`.
@@ -137,9 +155,17 @@ Title, colours, basemap and mode are in the `map:` section of the config. The ba
 
 ## Publishing the dataset
 
-`docs/DATA_README.md` (goes into the Zenodo dataset record) and `docs/ZENODO_DESCRIPTION.md`
-(metadata to paste) are drafts with `[[PLACEHOLDERS]]`. Fill them with
-`python run.py stats --run outputs/<run_id>`.
+`docs/coffee_bread/DATA_README.md` (goes into the Zenodo dataset record) and
+`docs/coffee_bread/ZENODO_DESCRIPTION.md` (metadata to paste) are drafts with `[[PLACEHOLDERS]]`.
+Fill them with `python run.py stats --run outputs/<run_id>`.
+
+The code and the data are two Zenodo records: this code (DOI above) and the dataset
+SDG9-COFFEEANDBREAD, which should point to the code as "is derived from".
+
+## Citing this code
+
+Rivera, Y. A. (2026). *SDG11-CITY-PLACES: counting places per city worldwide, and who reports them*
+(v0.9.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24253398
 
 ## Citing the sources
 
@@ -169,5 +195,14 @@ cityplaces/map_template.html  map page (MapLibre)
 SECURITY.md                 how the map page is protected
 cityplaces/find.py      find brands/names worldwide
 cityplaces/stats.py     numbers for the dataset README
+docs/index.html         the published map page (GitHub Pages)
+docs/data/              its data: cities.json + places/<cell>.json
 docs/coffee_bread/      dataset README + Zenodo text for the first edition
+data/                   inputs (GHSL GeoPackage), git-ignored
+outputs/                run folders, git-ignored
 ```
+
+## License
+
+Code: MIT (see `LICENSE`). Data shown on the map keeps its sources' licences: Overture Maps
+(CDLA-Permissive-2.0, Apache-2.0, CC0 by provider) and GHSL (see the citation above).
