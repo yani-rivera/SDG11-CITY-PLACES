@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# macOS folder settings
+.DS_Store
+
+# Run outputs (published on Zenodo, not in the repo).
+# The map for GitHub Pages is copied into docs/ instead.
+outputs/
+
+# Input data stays on your computer
+data/*
+!data/.gitkeep
